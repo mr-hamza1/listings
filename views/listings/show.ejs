@@ -1,0 +1,149 @@
+<% layout('/layouts/boilerplate') %>
+ <% if (list.geometry && list.geometry.coordinates && list.geometry.coordinates.length> 0) { %>
+   <script>
+      const coordinates = <%= JSON.stringify(list.geometry.coordinates) %>;
+   </script>
+   <% } else { %>
+      <!-- Default to Faisalabad coordinates if none provided -->
+      <script>
+         const coordinates = [73.079138, 31.418139]; // Default coordinates (longitude, latitude)
+      </script>
+      <% } %>
+
+          
+
+            <body>
+               <div class="card card-listing offset-2" style="width: 40rem;">
+                  <h2>
+                     <%= list.title %>
+                  </h2>
+                  <br><br>
+                  <img src="<%= list.image.url %>" class="card-img-top" alt="listing-image"
+                     style="width: 20rem; height: 20rem;">
+               </div>
+
+               <div class="card-body offset-2">
+                  <p class="card-text font-weight-bold"><i>Owned by <%= list.owner.username %></i></p>
+                  <p class="card-text font-weight-bold"><b>
+                        <%= list.description %>
+                     </b></p>
+                  <p class="card-text">&#8377;<%= list.price.toLocaleString("ur-PK") %>
+                  </p>
+                  <p class="card-text">
+                     <%= list.location %>
+                  </p>
+                  <p class="card-text">
+                     <%= list.country %>
+                  </p>
+                  <br>
+               </div>
+
+               <% if (list.owner && user && list && user._id && user._id.equals(list.owner._id)) { %>
+                  <div class="btns offset-2">
+                     <a href="/listings/<%= list._id %>/new" class="btn btn-dark add-btn set-btn">Edit</a>
+                     <br><br>
+                     <form method="post" action="/listings/<%= list._id %>?_method=DELETE">
+                        <button class="btn btn-dark set-btn">Delete</button>
+                     </form>
+                  </div>
+                  <% } %>
+
+                     <% if (user) { %>
+                        <div class="offset-2 col-8">
+                           <form action="/listings/<%= list._id %>/review" method="post" novalidate
+                              class="needs-validation">
+                              <hr>
+                              <h2>Review listing:</h2>
+                              <label for="rating" class="form-label">Rating:</label> <br>
+                              <fieldset class="starability-slot">
+                                 <input type="radio" id="no-rate" class="input-no-rate" name="review[rating]" value="1"
+                                    checked aria-label="No rating." />
+                                 <input type="radio" id="first-rate1" name="review[rating]" value="1" />
+                                 <label for="first-rate1" title="Terrible">1 star</label>
+                                 <input type="radio" id="first-rate2" name="review[rating]" value="2" />
+                                 <label for="first-rate2" title="Not good">2 stars</label>
+                                 <input type="radio" id="first-rate3" name="review[rating]" value="3" />
+                                 <label for="first-rate3" title="Average">3 stars</label>
+                                 <input type="radio" id="first-rate4" name="review[rating]" value="4" />
+                                 <label for="first-rate4" title="Very good">4 stars</label>
+                                 <input type="radio" id="first-rate5" name="review[rating]" value="5" />
+                                 <label for="first-rate5" title="Amazing">5 stars</label>
+                              </fieldset>
+
+                              <label for="comment" class="form-label">Comment:</label>
+                              <textarea name="review[comment]" id="comment" class="form-control" cols="15" rows="5"
+                                 required></textarea>
+                              <div class="invalid-feedback">Please enter a comment!</div>
+                              <br>
+
+                              <button class="btn btn-outline-dark">Submit</button><br><br>
+                           </form>
+                        </div>
+                        <% } %>
+
+                           <% if (list.review.length> 0) { %>
+                              <div class="row offset-2">
+                                 <hr class="col-10">
+                                 <br>
+                                 <h4>Reviews:</h4>
+                                 <br><br>
+                                 <% for (review of list.review) { %>
+                                    <div class="card col-4 ms-5 mb-3">
+                                       <div class="card-body">
+                                          <h5 class="card-title">
+                                             <img style="height: 50px; width: 50px; border-radius: 50%;"
+                                                src="https://static.posters.cz/image/750/wall-murals/the-batman-2022-truth-i123341.jpg"
+                                                alt="">
+                                             @<%= review.author.username %>
+                                          </h5>
+                                          <p class="starability-result" data-rating="<%= review.rating %>"></p>
+                                          <p class="card-text">
+                                             <%= review.comment %>
+                                          </p>
+                                          <p class="card-text">
+                                             <%= review.rating %> stars
+                                          </p>
+                                       </div>
+                                       <form action="/listings/<%= list._id %>/review/<%= review._id %>?_method=DELETE"
+                                          method="post" class="mb-2 mt-2">
+                                          <% if (user) { %>
+                                             <button class="btn btn-sm btn-dark">Delete</button>
+                                             <% } %>
+                                       </form>
+                                    </div>
+                                    <% } %>
+                              </div>
+                              <% } %>
+                                 <br><br><br>
+                                 <div class="offset-2 col-8">
+                                    <h3>Where you will be</h3>
+                                    <div id="map"></div>
+                                 </div>
+
+                                 <script>
+                                    // Initialize the map
+                                    const map = L.map('map').setView([coordinates[1], coordinates[0]], 13);
+
+                                    // Add OpenStreetMap tiles
+                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                       maxZoom: 19,
+                                    }).addTo(map);
+
+                                    // Add a marker at the specified coordinates
+                                    const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
+
+                                    // Bind popup to the marker
+                                    marker.bindPopup("<%= list.location %>").openPopup(); // Ensure that 'location' is set correctly
+
+                                    // Optional: Initialize geocoder control
+                                    const control = L.Control.geocoder({
+                                       defaultMarkGeocode: true
+                                    }).addTo(map);
+
+                                    control.on('markgeocode', function (e) {
+                                       const latlng = e.geocode.center;
+                                       L.marker(latlng).addTo(map).bindPopup(e.geocode.name).openPopup();
+                                       map.setView(latlng, 13); // Move the map to the searched location
+                                    });
+                                 </script>
+            </body>
